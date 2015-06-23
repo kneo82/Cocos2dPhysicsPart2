@@ -188,6 +188,7 @@
 		30E2BE7E1B39BE16001D20AC /* IntroLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 30E2BE7D1B39BE16001D20AC /* IntroLayer.mm */; };
 		30E2BE811B39BE16001D20AC /* GLES-Render.mm in Sources */ = {isa = PBXBuildFile; fileRef = 30E2BE801B39BE16001D20AC /* GLES-Render.mm */; };
 		30E2BE831B39BE16001D20AC /* blocks.png in Resources */ = {isa = PBXBuildFile; fileRef = 30E2BE821B39BE16001D20AC /* blocks.png */; };
+		30E2BE8D1B39BFAD001D20AC /* MainScene.m in Sources */ = {isa = PBXBuildFile; fileRef = 30E2BE8C1B39BFAD001D20AC /* MainScene.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -569,6 +570,8 @@
 		30E2BE7F1B39BE16001D20AC /* GLES-Render.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GLES-Render.h"; sourceTree = "<group>"; };
 		30E2BE801B39BE16001D20AC /* GLES-Render.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "GLES-Render.mm"; sourceTree = "<group>"; };
 		30E2BE821B39BE16001D20AC /* blocks.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blocks.png; path = Resources/blocks.png; sourceTree = "<group>"; };
+		30E2BE8B1B39BFAD001D20AC /* MainScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainScene.h; sourceTree = "<group>"; };
+		30E2BE8C1B39BFAD001D20AC /* MainScene.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MainScene.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -629,14 +632,14 @@
 		30E2BC521B39BE10001D20AC /* Cocos2dPhysicsPart2 */ = {
 			isa = PBXGroup;
 			children = (
+				30E2BE8A1B39BF78001D20AC /* Scene */,
+				30E2BE891B39BF29001D20AC /* Tools */,
 				30E2BE761B39BE16001D20AC /* AppDelegate.h */,
 				30E2BE771B39BE16001D20AC /* AppDelegate.mm */,
 				30E2BE791B39BE16001D20AC /* HelloWorldLayer.h */,
 				30E2BE7A1B39BE16001D20AC /* HelloWorldLayer.mm */,
 				30E2BE7C1B39BE16001D20AC /* IntroLayer.h */,
 				30E2BE7D1B39BE16001D20AC /* IntroLayer.mm */,
-				30E2BE7F1B39BE16001D20AC /* GLES-Render.h */,
-				30E2BE801B39BE16001D20AC /* GLES-Render.mm */,
 				30E2BC531B39BE10001D20AC /* Resources */,
 				30E2BC6B1B39BE10001D20AC /* libs */,
 				30E2BE721B39BE16001D20AC /* Supporting Files */,
@@ -1184,6 +1187,24 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		30E2BE891B39BF29001D20AC /* Tools */ = {
+			isa = PBXGroup;
+			children = (
+				30E2BE7F1B39BE16001D20AC /* GLES-Render.h */,
+				30E2BE801B39BE16001D20AC /* GLES-Render.mm */,
+			);
+			name = Tools;
+			sourceTree = "<group>";
+		};
+		30E2BE8A1B39BF78001D20AC /* Scene */ = {
+			isa = PBXGroup;
+			children = (
+				30E2BE8B1B39BFAD001D20AC /* MainScene.h */,
+				30E2BE8C1B39BFAD001D20AC /* MainScene.m */,
+			);
+			path = Scene;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1322,6 +1343,7 @@
 				30E2BD741B39BE14001D20AC /* CCArray.m in Sources */,
 				30E2BDD11B39BE15001D20AC /* plane.c in Sources */,
 				30E2BE3D1B39BE16001D20AC /* b2ContactSolver.cpp in Sources */,
+				30E2BE8D1B39BFAD001D20AC /* MainScene.m in Sources */,
 				30E2BD7D1B39BE14001D20AC /* CCProfiling.m in Sources */,
 				30E2BE501B39BE16001D20AC /* b2FrictionJoint.cpp in Sources */,
 				30E2BD141B39BE13001D20AC /* CCShaderCache.m in Sources */,
@@ -1482,6 +1504,7 @@
 				);
 				HEADER_SEARCH_PATHS = "\"Cocos2dPhysicsPart2/libs/kazmath/include\"";
 				INFOPLIST_FILE = Cocos2dPhysicsPart2/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lsqlite3",
@@ -1507,6 +1530,7 @@
 				);
 				HEADER_SEARCH_PATHS = "\"Cocos2dPhysicsPart2/libs/kazmath/include\"";
 				INFOPLIST_FILE = Cocos2dPhysicsPart2/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lsqlite3",
