@@ -10,6 +10,15 @@
 
 #import "Box2D.h"
 #import "GLES-Render.h"
+#import "CCPhysicsSprite.h"
+
+#import "SimpleAudioEngine.h"
+
+typedef NS_OPTIONS(uint32_t, CNPhysicsCategory) {
+    CNPhysicsCategoryCat = 1 << 0, // 0001 = 1
+    CNPhysicsCategoryBlock = 1 << 1, // 0010 = 2
+    CNPhysicsCategoryBed = 1 << 2, // 0100 = 4
+};
 
 #define isIPad UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad
 #define PTM_RATIO (isIPad ? 64 : 32)
@@ -26,11 +35,23 @@
 @property (nonatomic, strong)   CCSprite        *bedNode;
 @property (nonatomic, assign)   NSUInteger      currentLevel;
 
+- (CCPhysicsSprite *)spriteWithName:(NSString *)name
+                               rect:(CGRect)rect
+                           bodyType:(b2BodyType)type
+                    categoryBitMask:(CNPhysicsCategory)categoryMask
+                   collisionBitMask:(CNPhysicsCategory)collisionMask;
+
 - (void)setupPhysics;
 - (void)initializeScene;
 - (void)addCatBed;
 
 - (NSString *)fileNameWithScaleFromName:(NSString *)name;
+
+- (void)setupLevel:(int)levelNum;
+- (void)addBlocksFromArray:(NSArray*)blocks;
+- (void)tick:(ccTime)dt;
+- (void)addCatAtPosition:(CGPoint)position;
+- (CCSprite *)addBlockWithRect:(CGRect)blockRect;
 
 @end
 
@@ -64,6 +85,9 @@
     self = [super init];
     
     if (self) {
+        [[SimpleAudioEngine sharedEngine] preloadBackgroundMusic:@"bgMusic.mp3"];
+        [[SimpleAudioEngine sharedEngine] playBackgroundMusic:@"bgMusic.mp3"];
+        
         self.winSize = [CCDirector sharedDirector].winSize;
         self.screenScale = [[UIScreen mainScreen] scale];
         
@@ -127,33 +151,11 @@
 #pragma mark -
 #pragma mark Private
 
-- (void)tick:(ccTime) dt {
-    self.physicsWorld->Step(dt, 10, 10);
-    
-    b2Body *body = self.physicsWorld->GetBodyList();
-    
-    while (body) {
-        CCSprite *sprite = (__bridge CCSprite *)body->GetUserData();
-        
-        b2Vec2 position = body->GetPosition();
-        CGPoint spritePosition = ccp(position.x * PTM_RATIO, position.y * PTM_RATIO);
-        
-        if (spritePosition.x < -self.winSize.width
-            || spritePosition.y < -self.winSize.height
-            || spritePosition.x > 2 * self.winSize.width
-            || spritePosition.y > 2 * self.winSize.height)
-        {
-            b2Body *nextBody = body->GetNext();
-            
-            self.physicsWorld->DestroyBody(body);
-            [sprite removeFromParent];
-            body = nextBody;
-        } else {
-            sprite.position = spritePosition;
-            sprite.rotation = -1 * CC_RADIANS_TO_DEGREES(body->GetAngle());
-            body = body->GetNext();
-        }
-    }
+- (void)tick:(ccTime)dt {
+    int32 velocityIterations = 8;
+    int32 positionIterations = 1;
+
+    self.physicsWorld->Step(dt, velocityIterations, positionIterations);
 }
 
 - (void)setupPhysics {
@@ -214,65 +216,64 @@
 }
 
 - (void)addCatBed {
-    NSString *spriteName = [self fileNameWithScaleFromName:@"cat_bed"];
-    CCSpriteFrame *frame = [[CCSpriteFrameCache sharedSpriteFrameCache] spriteFrameByName:spriteName];
+    NSString *name = [self fileNameWithScaleFromName:@"cat_bed"];
     
-    CCSprite *bed = [CCSprite spriteWithSpriteFrame:frame];
+    CCSpriteFrame *frame = [[CCSpriteFrameCache sharedSpriteFrameCache] spriteFrameByName:name];
     
-    bed.position = CGPointMake(270, 15);
+    CGRect bodyRect = frame.rect;
+    bodyRect.origin = CGPointMake(270, 15);
+    bodyRect.size = CGSizeMake(40, 30);
+    
+    CCSprite *bed = [self spriteWithName:@"cat_bed"
+                                        rect:bodyRect
+                                    bodyType:b2_dynamicBody
+                             categoryBitMask:CNPhysicsCategoryBed
+                            collisionBitMask:0];
+
     bed.zOrder = -10;
     
     [self addChild:bed];
     
     self.bedNode = bed;
-
-    b2BodyDef physicsBodyDef;
-    
-    physicsBodyDef.type = b2_staticBody;
-    physicsBodyDef.position.Set(bed.position.x / PTM_RATIO, bed.position.y / PTM_RATIO);
-    
-    physicsBodyDef.userData = (__bridge void *)bed;
-    
-    b2Body *physicsBody = self.physicsWorld->CreateBody(&physicsBodyDef);
-    
-    b2PolygonShape spriteShape;
-    spriteShape.SetAsBox(self.scaleX * 20 / PTM_RATIO, self.scaleY * 10 / PTM_RATIO); // (30,40)
-    
-    physicsBody->CreateFixture(&spriteShape, 0);
 }
 
 - (void)addCatAtPosition:(CGPoint)position {
-    NSString *spriteName = [self fileNameWithScaleFromName:@"cat_sleepy"];
-    CCSpriteFrame *frame = [[CCSpriteFrameCache sharedSpriteFrameCache] spriteFrameByName:spriteName];
+    NSString *name = [self fileNameWithScaleFromName:@"cat_sleepy"];
     
-    CCSprite *catNode = [CCSprite spriteWithSpriteFrame:frame];
-    catNode.position = position;
+    CCSpriteFrame *frame = [[CCSpriteFrameCache sharedSpriteFrameCache] spriteFrameByName:name];
+    CGRect bodyRect = frame.rect;
+    bodyRect.origin = position;
+    bodyRect.size = CGSizeMake((bodyRect.size.width - 40), (bodyRect.size.height - 10));
+    
+    CCSprite *catNode = [self spriteWithName:@"cat_sleepy"
+                                        rect:bodyRect
+                                    bodyType:b2_dynamicBody
+                             categoryBitMask:CNPhysicsCategoryCat
+                            collisionBitMask:CNPhysicsCategoryBlock | CNPhysicsCategoryCat];
+    
     [self.gameNode addChild:catNode];
     
     self.catNode = catNode;
+}
 
+- (void)addBlocksFromArray:(NSArray*)blocks {
+    for (NSDictionary *block in blocks) {
+        CCSprite *blockSprite = [self addBlockWithRect:CGRectFromString(block[@"rect"])];
+        [self.gameNode addChild:blockSprite]; }
+}
+
+- (CCSprite *)addBlockWithRect:(CGRect)blockRect {
+    NSString *textureName = [NSString stringWithFormat:@"%.fx%.f",
+                                                         blockRect.size.width,
+                                                         blockRect.size.height];
     
-    b2BodyDef physicsBodyDef;
+    CCSprite *sprite = [self spriteWithName:textureName
+                                       rect:blockRect
+                                   bodyType:b2_dynamicBody
+                            categoryBitMask:CNPhysicsCategoryBlock
+                           collisionBitMask:CNPhysicsCategoryBlock | CNPhysicsCategoryCat];
     
-    physicsBodyDef.type = b2_dynamicBody;
-    physicsBodyDef.position.Set(catNode.position.x / PTM_RATIO, catNode.position.y / PTM_RATIO);
-    
-    physicsBodyDef.userData = (__bridge void *)catNode;
-    
-    b2Body *physicsBody = self.physicsWorld->CreateBody(&physicsBodyDef);
-    
-    b2PolygonShape spriteShape;
-    spriteShape.SetAsBox((catNode.contentSize.width - 40) / PTM_RATIO / 2,
-                         (catNode.contentSize.height - 10) / PTM_RATIO / 2);
-    
-    physicsBody->CreateFixture(&spriteShape, 0);
-//    b2FixtureDef spriteShapeDef;
-//    spriteShapeDef.shape = &spriteShape;
-//    spriteShapeDef.density = 10.00;
-//    spriteShapeDef.friction = .2f;
-//    spriteShapeDef.restitution = .8f;
-//    
-//    physicsBody->CreateFixture(&spriteShapeDef);
+    return sprite;
 }
 
 - (NSString *)fileNameWithScaleFromName:(NSString *)name {
@@ -288,6 +289,53 @@
     NSDictionary *level = [NSDictionary dictionaryWithContentsOfFile:filePath];
     
     [self addCatAtPosition: CGPointFromString(level[@"catPosition"])];
+    
+    [self addBlocksFromArray:level[@"blocks"]];
+}
+
+- (CCPhysicsSprite *)spriteWithName:(NSString *)name
+                               rect:(CGRect)rect
+                           bodyType:(b2BodyType)type
+                    categoryBitMask:(CNPhysicsCategory)categoryMask
+                   collisionBitMask:(CNPhysicsCategory)collisionMask
+{
+    NSString *textureName = [self fileNameWithScaleFromName:name];
+    
+    CCSpriteFrame *frame = [[CCSpriteFrameCache sharedSpriteFrameCache] spriteFrameByName:textureName];
+    
+    CCPhysicsSprite *sprite = [CCPhysicsSprite spriteWithSpriteFrame:frame];
+    
+    b2BodyDef bodyDef;
+    bodyDef.type = type;
+    
+    bodyDef.position.Set(rect.origin.x / PTM_RATIO, rect.origin.y / PTM_RATIO);
+    b2Body *body = self.physicsWorld->CreateBody(&bodyDef);
+    
+    // Define another box shape for our dynamic body.
+    b2PolygonShape spriteShape;
+    spriteShape.SetAsBox(rect.size.width / PTM_RATIO / 2, rect.size.height / PTM_RATIO / 2);
+    
+    // Define the dynamic body fixture.
+    b2FixtureDef fixtureDef;
+    
+    if (collisionMask > 0) {
+        fixtureDef.filter.maskBits = collisionMask;
+    }
+    
+    fixtureDef.filter.categoryBits = categoryMask;
+    
+    fixtureDef.shape = &spriteShape;
+//    fixtureDef.density = 1.0f;
+//    fixtureDef.friction = 0.3f;
+    body->CreateFixture(&fixtureDef);
+    
+    //    body->CreateFixture(&spriteShape, 0);
+    
+    [sprite setPTMRatio:PTM_RATIO];
+    [sprite setB2Body:body];
+    sprite.position = rect.origin;
+    
+    return sprite;
 }
 
 @end
