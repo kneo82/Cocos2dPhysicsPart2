@@ -86,6 +86,7 @@ typedef NS_OPTIONS(uint32_t, CNPhysicsCategory) {
     
     if (self) {
         [[SimpleAudioEngine sharedEngine] preloadBackgroundMusic:@"bgMusic.mp3"];
+        [[SimpleAudioEngine sharedEngine] preloadEffect:@"pop.mp3"];
         [[SimpleAudioEngine sharedEngine] playBackgroundMusic:@"bgMusic.mp3"];
         
         self.winSize = [CCDirector sharedDirector].winSize;
@@ -123,6 +124,45 @@ typedef NS_OPTIONS(uint32_t, CNPhysicsCategory) {
 
 #pragma mark -
 #pragma mark Touch Handle
+
+- (void)registerWithTouchDispatcher {
+    [[[CCDirector sharedDirector] touchDispatcher] addTargetedDelegate:self priority:kCCMenuHandlerPriority swallowsTouches:NO];
+}
+
+- (BOOL)ccTouchBegan:(UITouch *)touch withEvent:(UIEvent *)event {
+    NSLog(@"ccTouchBegan");
+
+    CGPoint location = [touch locationInView:[touch view]];
+    location = [[CCDirector sharedDirector] convertToGL:location];
+    
+    location = [self convertToNodeSpace:location];
+    
+    b2Vec2 locationWorld = b2Vec2(location.x/PTM_RATIO, location.y/PTM_RATIO);
+    
+    for (int i = 0; i < self.gameNode.children.count; i++) {
+        CCNode *node = [self.gameNode.children objectAtIndex:i];
+        
+        if ([node isMemberOfClass:[CCPhysicsSprite class]]) {
+            CCPhysicsSprite *sprite = (CCPhysicsSprite *)node;
+            b2Body *body = sprite.b2Body;
+            
+            for(b2Fixture *fixture = body->GetFixtureList(); fixture; fixture=fixture->GetNext()) {
+                b2Filter filter = fixture->GetFilterData();
+                if (filter.categoryBits == CNPhysicsCategoryBlock && fixture->TestPoint(locationWorld)) {
+                    [self.gameNode removeChild:sprite];
+                    
+                    self.physicsWorld -> DestroyBody(body);
+                    [[SimpleAudioEngine sharedEngine] playEffect:@"pop.mp3" pitch:1.0f pan:0.0f gain:1.0f];
+                    
+                    return YES;
+                }
+            }
+
+        }
+    }
+
+    return YES;
+}
 
 #pragma mark -
 #pragma mark Life Cycle
@@ -325,8 +365,9 @@ typedef NS_OPTIONS(uint32_t, CNPhysicsCategory) {
     fixtureDef.filter.categoryBits = categoryMask;
     
     fixtureDef.shape = &spriteShape;
-//    fixtureDef.density = 1.0f;
-//    fixtureDef.friction = 0.3f;
+    fixtureDef.density = 10.0f;
+    fixtureDef.friction = 0.5f;
+    fixtureDef.restitution = 0.2f;
     body->CreateFixture(&fixtureDef);
     
     //    body->CreateFixture(&spriteShape, 0);
